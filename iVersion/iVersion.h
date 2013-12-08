@@ -1,7 +1,7 @@
 //
 //  iVersion.h
 //
-//  Version 1.10.6
+//  Version 1.10.7
 //
 //  Created by Nick Lockwood on 26/01/2011.
 //  Copyright 2011 Charcoal Design
@@ -94,6 +94,8 @@ iVersionErrorCode;
 - (BOOL)iVersionShouldOpenAppStore;
 - (void)iVersionDidPresentStoreKitModal;
 - (void)iVersionDidDismissStoreKitModal;
+
+- (BOOL)iVersionStrongUpdateForNewVersion:(NSString *)aNewVersion FromVersion:(NSString *)aOldVerison;
 
 @end
 

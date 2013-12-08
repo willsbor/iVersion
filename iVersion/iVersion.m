@@ -1,7 +1,7 @@
 //
 //  iVersion.m
 //
-//  Version 1.10.6
+//  Version 1.10.7
 //
 //  Created by Nick Lockwood on 26/01/2011.
 //  Copyright 2011 Charcoal Design
@@ -96,6 +96,8 @@ static NSString *const iVersionMacAppStoreURLFormat = @"macappstore://itunes.app
 @property (nonatomic, strong) id visibleLocalAlert;
 @property (nonatomic, strong) id visibleRemoteAlert;
 @property (nonatomic, assign) BOOL currentlyChecking;
+
+@property (nonatomic) BOOL isStrongUpdate;
 
 @end
 
@@ -531,8 +533,35 @@ static NSString *const iVersionMacAppStoreURLFormat = @"macappstore://itunes.app
     //get version details
     NSString *details = [self versionDetailsSince:self.applicationVersion inDict:self.remoteVersionsDict];
     NSString *mostRecentVersion = [self mostRecentVersionInDict:self.remoteVersionsDict];
+    self.isStrongUpdate = NO;
+    
     if (details)
     {
+        if ([self.delegate respondsToSelector:@selector(iVersionStrongUpdateForNewVersion:FromVersion:)]) {
+            self.isStrongUpdate = [self.delegate iVersionStrongUpdateForNewVersion:mostRecentVersion FromVersion:self.applicationVersion];
+        }
+        else {
+            NSArray *newComp = [mostRecentVersion componentsSeparatedByString:@"."];
+            NSArray *oldComp = [self.applicationVersion componentsSeparatedByString:@"."];
+            
+            for (int i = 0; i < MIN([newComp count], [oldComp count]); ++i) {
+                NSComparisonResult compare = [oldComp[i] compare:newComp[i] options:(NSNumericSearch)];
+                
+                if (compare == NSOrderedAscending) {
+                    if (i == 0 || i == 1) {
+                        self.isStrongUpdate = YES;
+                    }
+                    break;
+                }
+                else if (compare == NSOrderedSame) {
+                    
+                }
+                else if (compare == NSOrderedDescending) {
+                    break;
+                }
+            }
+        }
+        
         //inform delegate of new version
         if ([self.delegate respondsToSelector:@selector(iVersionDidDetectNewVersion:details:)])
         {
@@ -576,9 +605,9 @@ static NSString *const iVersionMacAppStoreURLFormat = @"macappstore://itunes.app
             self.visibleRemoteAlert = [self alertViewWithTitle:title
                                                        details:details
                                                  defaultButton:self.downloadButtonLabel
-                                                  cancelButton:self.ignoreButtonLabel];
+                                                  cancelButton:self.isStrongUpdate ? nil : self.ignoreButtonLabel];
             
-            if ([self.remindButtonLabel length])
+            if (!self.isStrongUpdate && [self.remindButtonLabel length])
             {
                 [self.visibleRemoteAlert addButtonWithTitle:self.remindButtonLabel];
             }
@@ -1125,7 +1154,7 @@ static NSString *const iVersionMacAppStoreURLFormat = @"macappstore://itunes.app
         //record that details have been viewed
         self.viewedVersionDetails = YES;
     }
-    else if (buttonIndex == alertView.cancelButtonIndex)
+    else if (!self.isStrongUpdate && buttonIndex == alertView.cancelButtonIndex)
     {
         //ignore this version
         self.ignoredVersion = latestVersion;
